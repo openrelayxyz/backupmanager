@@ -39,9 +39,8 @@ func main() {
     concurrency := flag.Int("concurrency", 10, "The number of concurrent threads for downloading / decompressing data")
     flag.CommandLine.Parse(os.Args[2:])
     args := flag.CommandLine.Args()
-    bucket := args[0]
-    prefix := args[1]
-    file := args[2]
+    bucket, prefix := parseTarget(args[0])
+    file := args[1]
     if err := downloadFile(bucket, prefix, file, *concurrency); err != nil {
       log.Fatalf(err.Error())
     }
