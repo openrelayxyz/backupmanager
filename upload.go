@@ -12,22 +12,24 @@ import (
   s3 "github.com/aws/aws-sdk-go/service/s3"
 )
 
-func uploadFile(bucket, prefix, file, compressor string, chunkSize int64) error {
+func uploadFile(bucket, prefix, file, compressor string, chunkSize int64, concurrency int) error {
   session.Must(session.NewSession())
   svc := s3.New(session.Must(session.NewSession()))
-  _, err := svc.PutObject(&s3.PutObjectInput{
+  _, err := svc.GetObject(&s3.GetObjectInput{
     Bucket: aws.String(bucket),
     Key: aws.String(fmt.Sprintf("%v/manifest.0", prefix)),
-    Body: bytes.NewReader([]byte(compressor)),
   })
-  if err != nil { return err }
+  if err == nil {
+    log.Printf("Manifest already exists at s3://%v/%v/manifest.0 - stopping", bucket, prefix)
+    return err
+  }
   fd, err := os.Open(file)
   if err != nil { return err }
   defer fd.Close()
   info, err := fd.Stat()
   if err != nil { return err }
   size := info.Size()
-  partCh := make(chan part, 10)
+  partCh := make(chan part, concurrency)
   errCh := make(chan error)
   go func(){
     counter := 0
@@ -49,7 +51,7 @@ func uploadFile(bucket, prefix, file, compressor string, chunkSize int64) error 
     close(partCh)
   }()
   var wg sync.WaitGroup
-  for i := 0; i < 10; i++ {
+  for i := 0; i < concurrency; i++ {
     wg.Add(1)
     go func(wg *sync.WaitGroup) {
       compress := getCompressor(compressor)
@@ -69,6 +71,13 @@ func uploadFile(bucket, prefix, file, compressor string, chunkSize int64) error 
     wg.Wait()
     errCh <- nil
   }(&wg)
-  err = <-errCh
+  if err := <-errCh; err != nil {
+    return err
+  }
+  _, err = svc.PutObject(&s3.PutObjectInput{
+    Bucket: aws.String(bucket),
+    Key: aws.String(fmt.Sprintf("%v/manifest.0", prefix)),
+    Body: bytes.NewReader([]byte(compressor)),
+  })
   return err
 }
