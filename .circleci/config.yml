@@ -35,7 +35,7 @@ jobs:
       - run:
           name: Message Slack
           command: |
-              ./slack-post.sh -w $SlackWebhook -m "*backupmanager*:\nTag: $CIRCLE_TAG"
+              .circleci/slack-post.sh -w $SlackWebhook -m "*backupmanager*:\nTag: $CIRCLE_TAG"
 
 
 workflows:
