@@ -100,7 +100,7 @@ func downloadFile(bucket, prefix, file string, concurrency int) error {
         }
         data, err := decompress(obj.Body)
         if err != nil {
-          errCh <- err
+          errCh <- fmt.Errorf("Error decompressing %v: %v", key, err.Error())
           return
         }
         partCh <- part{
