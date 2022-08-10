@@ -27,7 +27,7 @@ func main() {
   switch subcommand := os.Args[1]; subcommand {
   case "upload":
     compressor := flag.String("compressor", "s2", "The compression algorithm and level (where applicable) to use")
-    chunkSize := flag.Int64("chunk-size", 134217728, "The number of bytes (pre-compressed) of each uploaded file chunk")
+    chunkSize := flag.Uint("chunk-size", 134217728, "The number of bytes (pre-compressed) of each uploaded file chunk")
     concurrency := flag.Int("concurrency", 10, "The number of concurrent threads for uploading / compressing data")
     flag.CommandLine.Parse(os.Args[2:])
     args := flag.CommandLine.Args()
