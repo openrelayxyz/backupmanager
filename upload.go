@@ -50,13 +50,15 @@ func uploadFile(bucket, prefix, source, compressor string, chunkSize uint, concu
       start += uint(finfo.Size())
       return nil
     })
-  case mode.IsRegular():
+  case mode.IsRegular() || (mode & fs.ModeSymlink == fs.ModeSymlink) :
     singleFile = true
     mf.Files[source] = fileRecord{
       Start: 0,
       Size: uint(finfo.Size()),
       ChunkSize: chunkSize,
     }
+  default:
+    return fmt.Errorf("unknown file mode")
   }
   for file, fr := range mf.Files {
     fpath := path.Join(source, file)
