@@ -42,9 +42,17 @@ func uploadFile(bucket, prefix, source, compressor string, chunkSize uint, concu
     filepath.Walk(source, func(path string, finfo fs.FileInfo, err error) error {
       if err != nil { return err }
       if finfo.IsDir() { return nil }
+      size := uint(finfo.Size())
+      if finfo.Mode() & fs.ModeSymlink != 0 {
+        lpath, err := os.Readlink(strings.TrimPrefix(path, source))
+        if err != nil { return err }
+        linfo, err := os.Stat(lpath)
+        if err != nil { return err }
+        size = uint(linfo.Size())
+      }
       mf.Files[strings.TrimPrefix(path, source)] = fileRecord{
         Start: start,
-        Size: uint(finfo.Size()),
+        Size: size,
         ChunkSize: chunkSize,
       }
       start += uint(finfo.Size())
@@ -75,7 +83,10 @@ func uploadFile(bucket, prefix, source, compressor string, chunkSize uint, concu
       for offset := uint(0); offset < fr.Size; offset += chunkSize {
         data := make([]byte, chunkSize)
         n, err := fd.Read(data[:])
-        if err != nil && err != io.EOF { errCh <- err }
+        if err != nil && err != io.EOF {
+          errCh <- err
+          return
+        }
         if n > 0 {
           partCh <- part{
             data: data[:n],
