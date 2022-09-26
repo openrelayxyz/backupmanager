@@ -50,7 +50,7 @@ func uploadFile(bucket, prefix, source, compressor string, chunkSize uint, concu
       start += uint(finfo.Size())
       return nil
     })
-  case mode.IsRegular() || (mode & fs.ModeSymlink == fs.ModeSymlink) :
+  case mode.IsRegular():
     singleFile = true
     mf.Files[source] = fileRecord{
       Start: 0,
@@ -70,7 +70,7 @@ func uploadFile(bucket, prefix, source, compressor string, chunkSize uint, concu
     defer fd.Close()
     partCh := make(chan part, concurrency)
     errCh := make(chan error)
-    go func(){
+    go func(file string, fr fileRecord){
       counter := 0
       for offset := uint(0); offset < fr.Size; offset += chunkSize {
         data := make([]byte, chunkSize)
@@ -88,7 +88,7 @@ func uploadFile(bucket, prefix, source, compressor string, chunkSize uint, concu
         if counter % 100 == 0 { log.Printf("Progress (%v): %v / %v chunks", file, counter, fr.Size / chunkSize)}
       }
       close(partCh)
-    }()
+    }(file, fr)
     var wg sync.WaitGroup
     for i := 0; i < concurrency; i++ {
       wg.Add(1)
