@@ -7,6 +7,7 @@ import (
   "os"
   "path"
   "encoding/json"
+  "regexp"
   "sync"
   "github.com/aws/aws-sdk-go/aws"
   "github.com/aws/aws-sdk-go/aws/session"
@@ -21,7 +22,11 @@ func recursiveMakeDir(p string) {
   }
 }
 
-func downloadFile(bucket, prefix, destination string, concurrency int) error {
+func downloadFile(bucket, prefix, destination, pattern string, concurrency int) error {
+  pattern_re, err := regexp.Compile(pattern)
+  if err != nil {
+    return err
+  }
   session.Must(session.NewSession())
   svc := s3.New(session.Must(session.NewSession()))
 
@@ -65,6 +70,9 @@ func downloadFile(bucket, prefix, destination string, concurrency int) error {
     close(progressCh)
   }()
   for fname, frecord := range mf.Files {
+    if !pattern_re.MatchString(fname) {
+      continue
+    }
     knownKeys += frecord.Size / frecord.ChunkSize
     filech[fname] = make(chan dpart)
     kwg.Add(1)

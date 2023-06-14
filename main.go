@@ -38,11 +38,12 @@ func main() {
     }
   case "download":
     concurrency := flag.Int("concurrency", 10, "The number of concurrent threads for downloading / decompressing data")
+    pattern := flag.String("pattern", ".*", "A regular expression indicating which files to download")
     flag.CommandLine.Parse(os.Args[2:])
     args := flag.CommandLine.Args()
     bucket, prefix := parseTarget(args[0])
     file := args[1]
-    if err := downloadFile(bucket, prefix, file, *concurrency); err != nil {
+    if err := downloadFile(bucket, prefix, file, *pattern, *concurrency); err != nil {
       log.Fatalf(err.Error())
     }
   default:
